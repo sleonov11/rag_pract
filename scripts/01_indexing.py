@@ -1,10 +1,12 @@
 import os
-from sentece_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer
 import faiss
 import pickle
 import numpy as np
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from pydf import PdfReader
+from pypdf import PdfReader
+from typing import Any, List, Dict, Tuple
+import docx2txt
 
 class SimpleRAGIndexer:
     def __init__(self, model_name='all-MiniLM-L6-v2'):
@@ -39,29 +41,50 @@ class SimpleRAGIndexer:
             file_path = os.path.join(folder_path, filename)
 
             if filename.endswith('.txt'):
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    text = f.read()
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        text = f.read()
+                        documents.append({
+                            'text': text,
+                            'source': filename
+                        })
+                except Exception as e:
+                    print(f"Error loading {filename}: {e}")
+            elif filename.endswith('.pdf'):
+                try:
+                    reader = PdfReader(file_path)
+                    text_pages = []
+                    for page in reader.pages:
+                        page_text = page.extract_text()
+                        if page_text:
+                            text_pages.append(page_text)
+                    text = '\n'.join(text_pages)
+                    documents.append({
+                        'text': text,
+                        'source':filename
+                    })
+                except Exception as e:
+                    print(f"Error loading PDF {filename}: {e}")
+
+            elif filename.endswith('.docx'):
+                try:
+                    text = docx2txt.process(file_path)
                     documents.append({
                         'text': text,
                         'source': filename
                     })
-            elif filename.endswith('.pdf'):
-                reader = PdfReader(file_path)
-                text = ''
-                for page in reader.pages:
-                    text+=page.extract_text()
-                documents.append({
-                    'text': text,
-                    'source':filename
-                })
+                except Exception as e:
+                    print(f"Error loading docx {filename}: {e}")
+            else:
+                print(f"Unsupported format: {filename}")
         return documents
 
-    def split_documents(self, documents:list):
+    def split_documents(self, documents: List[Dict[str, Any]]) -> Tuple[List[str], List[Dict[str, Any]]]:
         all_chunks = []
         all_metadata = []
 
         for doc in documents:
-            chunks = self.text_splitter(doc['text'])
+            chunks = self.text_splitter.split_text(doc['text'])
 
             for i, chunk in enumerate(chunks):
                 all_chunks.append(chunk)
