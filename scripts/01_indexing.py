@@ -9,15 +9,17 @@ from typing import Any, List, Dict, Tuple
 import docx2txt
 
 class SimpleRAGIndexer:
-    def __init__(self, model_name='all-MiniLM-L6-v2'):
+    def __init__(self, model_name='all-MiniLM-L6-v2',
+                 cache_folder='./model_cache'):
         """
         Инициализация индексатора
 
         Args:
             model_name: название модели для эмбеддингов
          """
+        os.makedirs(cache_folder, exist_ok=True)
 
-        self.model = SentenceTransformer(model_name)
+        self.model = SentenceTransformer(model_name, cache_folder=cache_folder)
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500,
             chunk_overlap=100,

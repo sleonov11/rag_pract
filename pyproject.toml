@@ -7,9 +7,10 @@ requires-python = ">=3.10"
 dependencies = [
     "sentence-transformers",
     "faiss-cpu",
-    "langchain",
+    "langchain == 0.3.27",
     "pypdf",
-    "numpy"
+    "numpy",
+    'docx2txt'
 ]
 
 [build-system]
