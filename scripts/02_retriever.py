@@ -4,6 +4,7 @@ from sentence_transformers import SentenceTransformer
 import pickle
 from typing import List, Dict, Any
 import os
+from transformers import pipeline
 
 class SimpleRAGRetriever:
     def __init__(self, index_path:str,
@@ -54,6 +55,33 @@ class SimpleRAGRetriever:
 
         return filtered_results
 
+from transformers import pipeline
+
+class RAGGenerator:
+    def __init__(self, generator_model_name="facebook/bart-large-cnn"):
+        self.summarizer = pipeline("summarization", model=generator_model_name)
+
+    def generate_answer(self, context: str, question: str) -> str:
+        combined_input = f"Question: {question}\nContext: {context}"
+        summary = self.summarizer(combined_input, max_length=150, min_length=50, do_sample=False)
+        return summary[0]['summary_text']
 
 if __name__ == '__main__':
-    pass
+    retriever = SimpleRAGRetriever(index_path='rag_index')
+    query = "структуры данных "
+    results = retriever.retrieve(query, top_k=5)
+
+    for i, res in enumerate(results):
+        print(f"\n--- Результат {i + 1} ---")
+        print(f"Источник: {res['metadata']['source']}")
+        print(f"Содержимое: {res['chunk'][:200]}...")  # первые 200 символов
+        print(f"Схожесть: {res['similarity']:.4f}")
+
+    context = "\n".join([res['chunk'] for res in results])
+
+    # Создаем объект генератора
+    generator = RAGGenerator()
+
+    # Вызываем метод у объекта
+    answer = generator.generate_answer(context, query)
+    print("\nСгенерированный ответ:", answer)
